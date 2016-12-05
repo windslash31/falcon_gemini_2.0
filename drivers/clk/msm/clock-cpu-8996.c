@@ -1293,6 +1293,8 @@ static void cpu_clock_8996_pro_fixup(void)
 	cbf_clk.postdiv = 4;
 }
 
+static int perfclspeedbin;
+
 unsigned long pwrcl_early_boot_rate = 883200000;
 unsigned long perfcl_early_boot_rate = 883200000;
 unsigned long cbf_early_boot_rate = 614400000;
@@ -1302,6 +1304,7 @@ static int cpu_clock_8996_driver_probe(struct platform_device *pdev)
 {
 	int ret, cpu;
 	unsigned long pwrclrate, perfclrate, cbfrate;
+	int pvs_ver = 0;
 	u32 pte_efuse;
 	char perfclspeedbinstr[] = "qcom,perfcl-speedbinXX-vXX";
 	char pwrclspeedbinstr[] = "qcom,pwrcl-speedbinXX-vXX";
@@ -1320,34 +1323,50 @@ static int cpu_clock_8996_driver_probe(struct platform_device *pdev)
 	}
 
 	pte_efuse = readl_relaxed(vbases[EFUSE_BASE]);
-
-	dev_info(&pdev->dev, "using perf/pwr/cbf speed bin 0 and pvs_ver 0\n");
+	perfclspeedbin = ((pte_efuse >> EFUSE_SHIFT) & EFUSE_MASK);
+	dev_info(&pdev->dev, "using perf/pwr/cbf speed bin %u and pvs_ver %d\n",
+		 perfclspeedbin, pvs_ver);
 
 	snprintf(perfclspeedbinstr, ARRAY_SIZE(perfclspeedbinstr),
-			"qcom,perfcl-speedbin0-v0");
+			"qcom,perfcl-speedbin%d-v%d", perfclspeedbin, pvs_ver);
 
 	ret = of_get_fmax_vdd_class(pdev, &perfcl_clk.c, perfclspeedbinstr);
 	if (ret) {
-		dev_err(&pdev->dev, "Unable to retrieve plan for perf. Bailing...\n");
-		return ret;
+		dev_err(&pdev->dev, "Can't get speed bin for perfcl. Falling back to zero.\n");
+		ret = of_get_fmax_vdd_class(pdev, &perfcl_clk.c,
+					    "qcom,perfcl-speedbin0-v0");
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to retrieve plan for perf. Bailing...\n");
+			return ret;
+		}
 	}
 
 	snprintf(pwrclspeedbinstr, ARRAY_SIZE(pwrclspeedbinstr),
-			"qcom,pwrcl-speedbin0-v0");
+			"qcom,pwrcl-speedbin%d-v%d", perfclspeedbin, pvs_ver);
 
 	ret = of_get_fmax_vdd_class(pdev, &pwrcl_clk.c, pwrclspeedbinstr);
 	if (ret) {
-		dev_err(&pdev->dev, "Unable to retrieve plan for pwrcl\n");
-		return ret;
+		dev_err(&pdev->dev, "Can't get speed bin for pwrcl. Falling back to zero.\n");
+		ret = of_get_fmax_vdd_class(pdev, &pwrcl_clk.c,
+				    "qcom,pwrcl-speedbin0-v0");
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to retrieve plan for pwrcl\n");
+			return ret;
+		}
 	}
 
 	snprintf(cbfspeedbinstr, ARRAY_SIZE(cbfspeedbinstr),
-			"qcom,cbf-speedbin0-v0");
+			"qcom,cbf-speedbin%d-v%d", perfclspeedbin, pvs_ver);
 
 	ret = of_get_fmax_vdd_class(pdev, &cbf_clk.c, cbfspeedbinstr);
 	if (ret) {
-		dev_err(&pdev->dev, "Unable to retrieve plan for cbf\n");
-		return ret;
+		dev_err(&pdev->dev, "Can't get speed bin for cbf. Falling back to zero.\n");
+		ret = of_get_fmax_vdd_class(pdev, &cbf_clk.c,
+				    "qcom,cbf-speedbin0-v0");
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to retrieve plan for cbf\n");
+			return ret;
+		}
 	}
 
 	get_online_cpus();
