@@ -11,7 +11,6 @@ mdss-mdp-objs += mdss_mdp_pp.o mdss_mdp_pp_debug.o mdss_mdp_pp_cache_config.o
 mdss-mdp-objs += mdss_mdp_intf_video.o
 mdss-mdp-objs += mdss_mdp_intf_cmd.o
 mdss-mdp-objs += mdss_mdp_intf_writeback.o
-mdss-mdp-objs += mdss_mdp_rotator.o
 mdss-mdp-objs += mdss_rotator.o
 mdss-mdp-objs += mdss_mdp_overlay.o
 mdss-mdp-objs += mdss_mdp_layer.o
@@ -22,13 +21,9 @@ mdss-mdp-objs += mdss_mdp_wfd.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss-mdp.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_mdp_debug.o
 
-ifeq ($(CONFIG_ARCH_MSM8996),y)
 mdss-mdp-objs += mdss_mdp_pp_v1_7.o
-endif
-
-ifeq ($(CONFIG_ARCH_MSM8937),y)
-mdss-mdp-objs += mdss_mdp_pp_v1_7.o
-endif
+mdss-mdp-objs += mdss_mdp_pp_v3.o
+mdss-mdp-objs += mdss_mdp_pp_common.o
 
 ifeq ($(CONFIG_FB_MSM_MDSS),y)
 obj-$(CONFIG_DEBUG_FS) += mdss_debug.o mdss_debug_xlog.o
